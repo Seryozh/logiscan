@@ -122,71 +122,94 @@ function groupTextIntoStickers(annotations: GoogleVisionAnnotation[]): any[] {
     return [];
   }
 
-  // Simple grouping: Look for blocks that match apartment code pattern
-  const apartmentRegex = /^C\d{2}[A-Z]$/i;
-  const trackingRegex = /^\d{4}$/;
+  // More flexible patterns
+  const apartmentRegex = /C\d{2}[A-Z]/i; // Match apartment codes like C12A, C05B
+  const trackingRegex = /\d{3,}/; // Match any 3+ digit number (more flexible)
 
   const detections: any[] = [];
   const usedIndices = new Set<number>();
+
+  // Get image dimensions from first annotation
+  const fullImageVertices = annotations[0].boundingPoly.vertices;
+  const imageWidth = Math.max(...fullImageVertices.map(v => v.x || 0));
+  const imageHeight = Math.max(...fullImageVertices.map(v => v.y || 0));
 
   textBlocks.forEach((block, index) => {
     if (usedIndices.has(index)) return;
 
     const text = block.description.trim();
+    const aptMatch = text.match(apartmentRegex);
 
-    // Check if this looks like an apartment code
-    if (apartmentRegex.test(text)) {
-      // Try to find nearby tracking number (within next 5 blocks)
+    // Check if this contains an apartment code
+    if (aptMatch) {
+      const apartment = aptMatch[0].toUpperCase();
+
+      // Try to find nearby tracking number (within next 10 blocks for flexibility)
       let tracking = null;
       let trackingIndex = -1;
+      let allRelevantText: string[] = [text];
 
-      for (let i = index + 1; i < Math.min(index + 6, textBlocks.length); i++) {
+      for (let i = index + 1; i < Math.min(index + 11, textBlocks.length); i++) {
         if (usedIndices.has(i)) continue;
 
         const nextText = textBlocks[i].description.trim();
-        if (trackingRegex.test(nextText)) {
-          tracking = nextText;
+        const trackingMatch = nextText.match(trackingRegex);
+
+        if (trackingMatch) {
+          tracking = trackingMatch[0];
           trackingIndex = i;
+          allRelevantText.push(nextText);
           break;
         }
       }
 
-      if (tracking) {
-        // Found a sticker! Create detection
-        const vertices = block.boundingPoly.vertices;
+      // Create detection even without tracking (could be unreadable)
+      const vertices = block.boundingPoly.vertices;
+      let allVertices = [...vertices];
 
-        // Get image dimensions from first annotation
-        const fullImageVertices = annotations[0].boundingPoly.vertices;
-        const imageWidth = Math.max(...fullImageVertices.map(v => v.x));
-        const imageHeight = Math.max(...fullImageVertices.map(v => v.y));
-
-        // Calculate bounding box (expand to include tracking number)
+      if (trackingIndex >= 0) {
         const trackingVertices = textBlocks[trackingIndex].boundingPoly.vertices;
-        const allVertices = [...vertices, ...trackingVertices];
-
-        const x_min = Math.min(...allVertices.map(v => v.x)) / imageWidth;
-        const y_min = Math.min(...allVertices.map(v => v.y)) / imageHeight;
-        const x_max = Math.max(...allVertices.map(v => v.x)) / imageWidth;
-        const y_max = Math.max(...allVertices.map(v => v.y)) / imageHeight;
-
-        detections.push({
-          raw_text: `${text}\n${tracking}`,
-          apartment: text.toUpperCase(),
-          tracking_last4: tracking,
-          date: null,
-          initials: null,
-          confidence: 0.95,
-          bounding_box: [x_min, y_min, x_max, y_max],
-          notes: 'Detected by Google Cloud Vision',
-        });
-
-        usedIndices.add(index);
+        allVertices = [...allVertices, ...trackingVertices];
         usedIndices.add(trackingIndex);
       }
+
+      // Calculate bounding box with padding
+      const x_coords = allVertices.map(v => v.x || 0);
+      const y_coords = allVertices.map(v => v.y || 0);
+
+      let x_min = Math.min(...x_coords) / imageWidth;
+      let y_min = Math.min(...y_coords) / imageHeight;
+      let x_max = Math.max(...x_coords) / imageWidth;
+      let y_max = Math.max(...y_coords) / imageHeight;
+
+      // Add small padding (2% on each side)
+      const padX = 0.02;
+      const padY = 0.02;
+      x_min = Math.max(0, x_min - padX);
+      y_min = Math.max(0, y_min - padY);
+      x_max = Math.min(1, x_max + padX);
+      y_max = Math.min(1, y_max + padY);
+
+      // Extract last 4 digits from tracking if available
+      const last4 = tracking ? tracking.slice(-4) : null;
+
+      detections.push({
+        raw_text: allRelevantText.join('\n'),
+        apartment: apartment,
+        tracking_last4: last4,
+        date: null,
+        initials: null,
+        confidence: tracking ? 0.95 : 0.7, // Lower confidence if no tracking found
+        bounding_box: [x_min, y_min, x_max, y_max],
+        notes: tracking ? 'Detected by Google Cloud Vision' : 'Apartment detected, tracking unreadable',
+      });
+
+      usedIndices.add(index);
     }
   });
 
-  console.log(`Google Vision found ${detections.length} stickers`);
+  console.log(`Google Vision found ${detections.length} stickers from ${textBlocks.length} text blocks`);
+  console.log('Detections:', detections);
   return detections;
 }
 
