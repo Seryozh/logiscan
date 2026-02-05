@@ -124,7 +124,10 @@ function groupTextIntoStickers(annotations: GoogleVisionAnnotation[]): any[] {
 
   // More flexible patterns
   const apartmentRegex = /C\d{2}[A-Z]/i; // Match apartment codes like C12A, C05B
-  const trackingRegex = /\d{3,}/; // Match any 3+ digit number (more flexible)
+  // Match 4-character codes: digits, alphanumeric, or mixed (928B, 1234, AB12)
+  // But NOT years like 2024, 2025, 2026
+  const trackingRegex = /^[0-9A-Z]{4}$/i;
+  const yearRegex = /^20[0-9]{2}$/; // Matches years 2000-2099
 
   const detections: any[] = [];
   const usedIndices = new Set<number>();
@@ -153,10 +156,15 @@ function groupTextIntoStickers(annotations: GoogleVisionAnnotation[]): any[] {
         if (usedIndices.has(i)) continue;
 
         const nextText = textBlocks[i].description.trim();
-        const trackingMatch = nextText.match(trackingRegex);
 
-        if (trackingMatch) {
-          tracking = trackingMatch[0];
+        // Skip if it's a year
+        if (yearRegex.test(nextText)) {
+          continue;
+        }
+
+        // Check if it matches tracking pattern (exactly 4 chars)
+        if (trackingRegex.test(nextText)) {
+          tracking = nextText;
           trackingIndex = i;
           allRelevantText.push(nextText);
           break;
