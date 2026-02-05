@@ -3,7 +3,7 @@ import { useSession } from '../../stores/sessionStore';
 
 interface PhotoThumbnailsProps {
   selectedPhotoId?: string | null;
-  onSelectPhoto?: (photoId: string) => void;
+  onSelectPhoto?: (photoId: string | null) => void;
 }
 
 export default function PhotoThumbnails({ selectedPhotoId, onSelectPhoto }: PhotoThumbnailsProps) {

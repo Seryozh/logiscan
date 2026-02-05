@@ -2,8 +2,8 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { compressImage } from '../utils/imageCompression';
 
 interface UseCameraReturn {
-  videoRef: React.RefObject<HTMLVideoElement>;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
   isReady: boolean;
   isStarting: boolean;
   error: string | null;
