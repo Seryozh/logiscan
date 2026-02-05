@@ -1,0 +1,145 @@
+import { describe, it, expect } from 'vitest';
+import { parsePackageList } from './parsePackageList';
+
+describe('parsePackageList', () => {
+  it('should parse valid tab-separated input correctly', () => {
+    const input = 'C01K Unit\tESCARDO ENTERPRISE LLC\tUPS - #2165790850 - 1ZA8272V1341859679 MARIA ESPEJO\t3901\t1/30/2026 6:57:06 PM';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(1);
+    expect(result.errors).toHaveLength(0);
+
+    const pkg = result.packages[0];
+    expect(pkg.apartment).toBe('C01K');
+    expect(pkg.trackingLast4).toBe('9679');
+    expect(pkg.carrier).toBe('UPS');
+    expect(pkg.recipient).toBe('MARIA ESPEJO');
+    expect(pkg.fullTracking).toBe('1ZA8272V1341859679');
+    expect(pkg.status).toBe('pending');
+    expect(pkg.id).toBeTruthy();
+  });
+
+  it('should parse multiple lines correctly', () => {
+    const input = `C01K Unit\tESCARDO ENTERPRISE LLC\tUPS - #2165790850 - 1ZA8272V1341859679 MARIA ESPEJO\t3901\t1/30/2026 6:57:06 PM
+C02G Unit\tJOHN DOE\tAMAZON - #12345 - TBA987654321 JOHN DOE\t4501\t2/1/2026 10:00:00 AM
+C14B Unit\tJANE SMITH\tFEDEX - #67890 - 123456789012 JANE SMITH\t2301\t2/2/2026 3:30:00 PM`;
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(3);
+    expect(result.errors).toHaveLength(0);
+
+    expect(result.packages[0].apartment).toBe('C01K');
+    expect(result.packages[1].apartment).toBe('C02G');
+    expect(result.packages[2].apartment).toBe('C14B');
+
+    expect(result.packages[0].trackingLast4).toBe('9679');
+    expect(result.packages[1].trackingLast4).toBe('4321');
+    expect(result.packages[2].trackingLast4).toBe('9012');
+  });
+
+  it('should parse space-separated input as fallback', () => {
+    const input = 'C01K Unit  ESCARDO ENTERPRISE LLC  UPS - #2165790850 - 1ZA8272V1341859679 MARIA ESPEJO  3901  1/30/2026 6:57:06 PM';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(1);
+    expect(result.errors).toHaveLength(0);
+    expect(result.packages[0].apartment).toBe('C01K');
+  });
+
+  it('should skip empty lines', () => {
+    const input = `C01K Unit\tESCARDO ENTERPRISE LLC\tUPS - #2165790850 - 1ZA8272V1341859679 MARIA ESPEJO\t3901\t1/30/2026 6:57:06 PM
+
+C02G Unit\tJOHN DOE\tAMAZON - #12345 - TBA987654321 JOHN DOE\t4501\t2/1/2026 10:00:00 AM`;
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(2);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('should handle lines with missing fields', () => {
+    const input = 'C01K Unit\tESCARDO ENTERPRISE LLC';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].reason).toContain('Insufficient fields');
+  });
+
+  it('should handle lines without apartment code', () => {
+    const input = 'Invalid Unit\tESCARDO ENTERPRISE LLC\tUPS - #2165790850 - 1ZA8272V1341859679 MARIA ESPEJO';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].reason).toContain('Could not find apartment code');
+  });
+
+  it('should handle malformed carrier/tracking field', () => {
+    const input = 'C01K Unit\tESCARDO ENTERPRISE LLC\tUPS INVALID FORMAT';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].reason).toContain('Could not parse carrier/tracking field');
+  });
+
+  it('should handle tracking numbers that are too short', () => {
+    const input = 'C01K Unit\tESCARDO ENTERPRISE LLC\tUPS - #2165790850 - 123 MARIA ESPEJO';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].reason).toContain('Tracking number too short');
+  });
+
+  it('should detect duplicate entries (same apt + last4)', () => {
+    const input = `C01K Unit\tESCARDO ENTERPRISE LLC\tUPS - #2165790850 - 1ZA8272V1341859679 MARIA ESPEJO\t3901\t1/30/2026 6:57:06 PM
+C01K Unit\tESCARDO ENTERPRISE LLC\tUPS - #2165790850 - 1ZA8272V1341859679 MARIA ESPEJO\t3901\t1/30/2026 6:57:06 PM`;
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(1);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].reason).toContain('Duplicate entry');
+  });
+
+  it('should trim whitespace from fields', () => {
+    const input = '  C01K Unit  \t  ESCARDO ENTERPRISE LLC  \t  UPS - #2165790850 - 1ZA8272V1341859679 MARIA ESPEJO  ';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(1);
+    expect(result.packages[0].apartment).toBe('C01K');
+    expect(result.packages[0].carrier).toBe('UPS');
+  });
+
+  it('should handle recipient names with multiple words', () => {
+    const input = 'C01K Unit\tESCARDO ENTERPRISE LLC\tUPS - #2165790850 - 1ZA8272V1341859679 MARIA CHRISTINA ESPEJO GONZALEZ\t3901\t1/30/2026 6:57:06 PM';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(1);
+    expect(result.packages[0].recipient).toBe('MARIA CHRISTINA ESPEJO GONZALEZ');
+  });
+
+  it('should extract last 4 characters correctly from various tracking formats', () => {
+    const input = `C01K Unit\tTest\tUPS - #1 - 1ZA8272V1341859679 TEST USER\t1\t1/1/2026
+C02G Unit\tTest\tAMAZON - #2 - TBA987654321 TEST USER\t2\t1/1/2026
+C03H Unit\tTest\tFEDEX - #3 - 123456 TEST USER\t3\t1/1/2026`;
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(3);
+    expect(result.packages[0].trackingLast4).toBe('9679');
+    expect(result.packages[1].trackingLast4).toBe('4321');
+    expect(result.packages[2].trackingLast4).toBe('3456');
+  });
+});
