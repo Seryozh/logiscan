@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { detectPackages, DETECTION_SERVICE } from '../services/aiService';
-import { detectWithGoogleVision } from '../services/googleVisionService';
+import { detectWithGemini3Agentic } from '../services/gemini3AgenticVision';
 import { matchDetections } from '../utils/matchingAlgorithm';
-import { loadApiKey, loadGoogleApiKey } from '../utils/localStorage';
+import { loadGoogleApiKey } from '../utils/localStorage';
 import { useSession } from '../stores/sessionStore';
 import type { Detection, BoundingBox } from '../types/models';
 
@@ -25,32 +24,20 @@ export function useAIDetection(): UseAIDetectionReturn {
       setError(null);
 
       try {
-        let aiResponse;
-
-        // Choose service based on configuration
-        if (DETECTION_SERVICE === 'google-vision') {
-          // Use Google Cloud Vision API
-          const googleApiKey = loadGoogleApiKey();
-          if (!googleApiKey) {
-            throw new Error(
-              'No Google Cloud API key found. Please enter your Google Cloud API key in settings.'
-            );
-          }
-
-          console.log('Using Google Cloud Vision API');
-          aiResponse = await detectWithGoogleVision(dataUrl, googleApiKey);
-        } else {
-          // Use OpenRouter (default)
-          const apiKey = loadApiKey();
-          if (!apiKey) {
-            throw new Error(
-              'No OpenRouter API key found. Please enter your OpenRouter API key in settings.'
-            );
-          }
-
-          console.log('Using OpenRouter:', DETECTION_SERVICE);
-          aiResponse = await detectPackages(dataUrl, apiKey);
+        // Use Gemini 3 Flash with Agentic Vision
+        const geminiApiKey = loadGoogleApiKey(); // Reuse Google API key storage
+        if (!geminiApiKey) {
+          throw new Error(
+            'No Gemini API key found. Please enter your Gemini API key from ai.google.dev in settings.'
+          );
         }
+
+        console.log('🤖 Using Gemini 3 Flash with Agentic Vision');
+        const aiResponse = await detectWithGemini3Agentic(dataUrl, {
+          apiKey: geminiApiKey,
+          thinkingLevel: 'HIGH', // Maximum reasoning depth
+          mediaResolution: 'high', // Best quality for text-heavy images
+        });
 
         // Debug logging
         console.log('AI Response:', aiResponse);
