@@ -7,6 +7,7 @@ import CameraPanel from './components/camera/CameraPanel';
 import PhotoThumbnails from './components/camera/PhotoThumbnails';
 import DetectionViewer from './components/detection/DetectionViewer';
 import ApiKeyInput from './components/shared/ApiKeyInput';
+import ReviewQueue from './components/review/ReviewQueue';
 
 function AppContent() {
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
@@ -69,6 +70,7 @@ function AppContent() {
           {/* Right Column - Package List & Summary */}
           <div className="lg:col-span-1 space-y-6">
             <SummaryPanel />
+            <ReviewQueue />
             <PackageList />
           </div>
         </div>

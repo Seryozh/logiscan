@@ -95,7 +95,7 @@ export default function BoundingBoxOverlay({
         canvas.height
       );
 
-      // Draw filled rectangle
+      // Draw semi-transparent fill
       ctx.fillStyle = colors.bg;
       ctx.fillRect(pixelBox.x, pixelBox.y, pixelBox.width, pixelBox.height);
 
@@ -104,44 +104,76 @@ export default function BoundingBoxOverlay({
       ctx.lineWidth = isSelected ? 4 : 2;
       ctx.strokeRect(pixelBox.x, pixelBox.y, pixelBox.width, pixelBox.height);
 
-      // Draw label with apartment and tracking
-      const label = `${detection.parsedApartment || '?'} · ${detection.parsedLast4 || '?'}`;
-      const fontSize = Math.max(12, canvas.width / 80);
-      ctx.font = `bold ${fontSize}px system-ui`;
+      // Draw small corner label (compact, less obtrusive)
+      if (detection.parsedApartment || detection.parsedLast4) {
+        const fontSize = Math.max(10, canvas.width / 100);
+        ctx.font = `600 ${fontSize}px system-ui`;
 
-      // Measure text for background
-      const textMetrics = ctx.measureText(label);
-      const padding = 4;
-      const labelWidth = textMetrics.width + padding * 2;
-      const labelHeight = fontSize + padding * 2;
+        // Create minimal label
+        const apt = detection.parsedApartment || '?';
+        const track = detection.parsedLast4 || '?';
 
-      // Draw label background
-      ctx.fillStyle = colors.border;
-      ctx.fillRect(
-        pixelBox.x,
-        pixelBox.y - labelHeight,
-        labelWidth,
-        labelHeight
-      );
+        // Measure text
+        const padding = 3;
+        const spacing = 2;
+        const aptWidth = ctx.measureText(apt).width;
+        const trackWidth = ctx.measureText(track).width;
+        const labelWidth = aptWidth + spacing + trackWidth + padding * 2;
+        const labelHeight = fontSize + padding * 2;
 
-      // Draw label text
-      ctx.fillStyle = 'white';
-      ctx.fillText(
-        label,
-        pixelBox.x + padding,
-        pixelBox.y - padding - 2
-      );
+        // Position label in top-left corner of box with slight offset
+        const labelX = pixelBox.x + 2;
+        const labelY = pixelBox.y + 2;
 
-      // Draw confidence indicator
-      if (detection.confidence < 0.9) {
-        const confText = `${Math.round(detection.confidence * 100)}%`;
-        ctx.font = `${fontSize * 0.8}px system-ui`;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.fillText(
-          confText,
-          pixelBox.x + pixelBox.width - ctx.measureText(confText).width - padding,
-          pixelBox.y + pixelBox.height - padding
-        );
+        // Draw compact label background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+
+        // Draw apartment code (brighter)
+        ctx.fillStyle = colors.border;
+        ctx.fillText(apt, labelX + padding, labelY + fontSize + 1);
+
+        // Draw tracking (white)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillText(track, labelX + padding + aptWidth + spacing, labelY + fontSize + 1);
+
+        // Draw low confidence indicator (tiny badge in top-right)
+        if (detection.confidence < 0.9) {
+          const badgeSize = fontSize * 1.2;
+          const badgeX = pixelBox.x + pixelBox.width - badgeSize - 2;
+          const badgeY = pixelBox.y + 2;
+
+          // Warning badge
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.9)'; // Red
+          ctx.beginPath();
+          ctx.arc(badgeX + badgeSize / 2, badgeY + badgeSize / 2, badgeSize / 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Exclamation mark
+          ctx.fillStyle = 'white';
+          ctx.font = `bold ${fontSize * 0.9}px system-ui`;
+          ctx.textAlign = 'center';
+          ctx.fillText('!', badgeX + badgeSize / 2, badgeY + badgeSize / 2 + fontSize * 0.35);
+          ctx.textAlign = 'left'; // Reset
+        }
+      }
+
+      // Draw selection indicator (number badge for easy reference)
+      if (isSelected) {
+        const badgeSize = Math.max(18, canvas.width / 60);
+        const badgeX = pixelBox.x - badgeSize / 2;
+        const badgeY = pixelBox.y - badgeSize / 2;
+
+        // Blue circle
+        ctx.fillStyle = '#3b82f6';
+        ctx.beginPath();
+        ctx.arc(badgeX, badgeY, badgeSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White border
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+        ctx.stroke();
       }
     });
   }, [imageUrl, detections, imageDimensions, selectedDetectionId]);
