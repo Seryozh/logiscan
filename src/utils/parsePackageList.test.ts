@@ -170,4 +170,79 @@ C03H Unit\tTest\tFEDEX - #3 - 123456 TEST USER\t3\t1/1/2026`;
     expect(result.packages[1].trackingLast4).toBe('4321');
     expect(result.packages[2].trackingLast4).toBe('3456');
   });
+
+  it('should parse single-space separated format using reference number anchor', () => {
+    const input = 'N01C Unit OFFICE 609 LLC USPS - #2167439815 - 420330199361289719660506103530 Gustavo Cuina 3801 2/4/2026 7:04:53 PM';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(1);
+    expect(result.errors).toHaveLength(0);
+
+    const pkg = result.packages[0];
+    expect(pkg.apartment).toBe('N01C');
+    expect(pkg.carrier).toBe('USPS');
+    expect(pkg.fullTracking).toBe('420330199361289719660506103530');
+    expect(pkg.trackingLast4).toBe('3530');
+    expect(pkg.recipient).toBe('Gustavo Cuina 3801 2/4/2026 7:04:53 PM');
+  });
+
+  it('should parse multiple single-space separated lines', () => {
+    const input = `N01C Unit OFFICE 609 LLC USPS - #2167439815 - 420330199361289719660506103530 Gustavo Cuina 3801 2/4/2026 7:04:53 PM
+N01D Unit HARBOUR 519 LLC USPS - #2156535163 - NO TRACKING NUMBER -- Ada Rinaudo (flat) 3801 1/2/2026 2:26:18 PM
+N01E Unit Mavisis LLC UPS - #2167820464 - 1ZV514B7YT08003344 Maria Vicoria Silva JA (flat) 3801 2/5/2026 6:25:48 PM`;
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(3);
+    expect(result.errors).toHaveLength(0);
+
+    expect(result.packages[0].apartment).toBe('N01C');
+    expect(result.packages[0].trackingLast4).toBe('3530');
+
+    expect(result.packages[1].apartment).toBe('N01D');
+    expect(result.packages[1].trackingLast4).toBe('NONE');
+    expect(result.packages[1].fullTracking).toBe('NO TRACKING NUMBER');
+
+    expect(result.packages[2].apartment).toBe('N01E');
+    expect(result.packages[2].trackingLast4).toBe('3344');
+  });
+
+  it('should handle "NO TRACKING" variants', () => {
+    const input = `N01A Unit Test LLC USPS - #111 - NO TRACKING NUMBER -- John Doe
+N01B Unit Test LLC FEDEX - #222 - NO TRK -- Jane Smith
+C01C Unit Test LLC AMAZON - #333 - NO TRACKING Bob Johnson`;
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(3);
+    expect(result.errors).toHaveLength(0);
+
+    expect(result.packages[0].fullTracking).toBe('NO TRACKING NUMBER');
+    expect(result.packages[0].trackingLast4).toBe('NONE');
+    expect(result.packages[0].recipient).toBe('John Doe');
+
+    expect(result.packages[1].fullTracking).toBe('NO TRK');
+    expect(result.packages[1].trackingLast4).toBe('NONE');
+    expect(result.packages[1].recipient).toBe('Jane Smith');
+
+    expect(result.packages[2].fullTracking).toBe('NO TRACKING');
+    expect(result.packages[2].trackingLast4).toBe('NONE');
+    expect(result.packages[2].recipient).toBe('Bob Johnson');
+  });
+
+  it('should work with any carrier name in single-space format', () => {
+    const input = `N01A Unit Test LLC DHL - #111 - 1234567890 John Doe
+N01B Unit Test LLC ONTRAC - #222 - ABCD1234 Jane Smith
+C01C Unit Test LLC LASERSHIP - #333 - XYZ9876 Bob Johnson`;
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(3);
+    expect(result.errors).toHaveLength(0);
+
+    expect(result.packages[0].carrier).toBe('DHL');
+    expect(result.packages[1].carrier).toBe('ONTRAC');
+    expect(result.packages[2].carrier).toBe('LASERSHIP');
+  });
 });
