@@ -48,9 +48,11 @@ TASK:
 Detect all package stickers and extract structured data from each one.
 
 FOR EACH STICKER, EXTRACT:
-1. Apartment code (format: C##L, examples: C08Q, C12A, C05B)
+1. Apartment code (format: X##Y where X and Y are any letters, ## are 2 digits)
+   Examples: C08Q, C12A, N05B, N14K, A02G, B15C
+   Pattern: [Letter][Digit][Digit][Letter]
 2. Tracking number LAST 4 DIGITS ONLY (examples: 928B, 1234, 5678)
-   ⚠️ CRITICAL: DO NOT extract years (2024, 2025, 2026) as tracking numbers!
+   ⚠️ CRITICAL: DO NOT extract years (2024, 2025, 2026, 2027) as tracking numbers!
    ⚠️ Only extract 4-character alphanumeric codes that are NOT years
 3. Date if visible (format: MM/DD or MM/DD/YY)
 4. Initials if visible (2-3 letters)
@@ -59,7 +61,8 @@ FOR EACH STICKER, EXTRACT:
 USE PYTHON CODE TO:
 - Perform OCR/text detection on the image
 - Group nearby text blocks that form complete stickers
-- Identify apartment codes using regex: C\d{2}[A-Z]
+- Identify apartment codes using flexible regex: [A-Z]\d{2}[A-Z]
+  (Matches: C12A, N05B, A14K, etc.)
 - Find tracking last 4 digits near apartment code (but NOT years!)
 - Calculate accurate bounding boxes around each complete sticker
 - Validate extracted data (reject years as tracking numbers)
@@ -78,7 +81,7 @@ Return ONLY a JSON array with this exact structure:
 [
   {
     "raw_text": "Complete text from sticker",
-    "apartment": "C08Q",
+    "apartment": "C08Q",  // Can be C##L, N##L, A##L, etc.
     "tracking_last4": "928B",
     "date": "01/30",
     "initials": "SK",

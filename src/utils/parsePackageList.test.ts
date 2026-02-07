@@ -49,6 +49,32 @@ C14B Unit\tJANE SMITH\tFEDEX - #67890 - 123456789012 JANE SMITH\t2301\t2/2/2026 
     expect(result.packages[0].apartment).toBe('C01K');
   });
 
+  it('should accept N##X apartment codes', () => {
+    const input = `N05B Unit\tJOHN DOE\tUPS - #12345 - 1ZA827123456789 JOHN DOE\t4501\t2/1/2026 10:00:00 AM
+N14K Unit\tJANE SMITH\tFEDEX - #67890 - 123456789012 JANE SMITH\t2301\t2/2/2026 3:30:00 PM`;
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(2);
+    expect(result.errors).toHaveLength(0);
+    expect(result.packages[0].apartment).toBe('N05B');
+    expect(result.packages[1].apartment).toBe('N14K');
+  });
+
+  it('should accept any letter prefix apartment codes (A##X, B##X, etc)', () => {
+    const input = `A12C Unit\tTEST USER\tUPS - #11111 - 1Z111111111 TEST\t1111\t2/1/2026 10:00:00 AM
+B05D Unit\tTEST USER 2\tFEDEX - #22222 - 222222222222 TEST2\t2222\t2/2/2026 3:30:00 PM
+Z99Z Unit\tTEST USER 3\tAMAZON - #33333 - TBA333333333 TEST3\t3333\t2/3/2026 5:00:00 PM`;
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(3);
+    expect(result.errors).toHaveLength(0);
+    expect(result.packages[0].apartment).toBe('A12C');
+    expect(result.packages[1].apartment).toBe('B05D');
+    expect(result.packages[2].apartment).toBe('Z99Z');
+  });
+
   it('should skip empty lines', () => {
     const input = `C01K Unit\tESCARDO ENTERPRISE LLC\tUPS - #2165790850 - 1ZA8272V1341859679 MARIA ESPEJO\t3901\t1/30/2026 6:57:06 PM
 

@@ -19,7 +19,8 @@ export function parsePackageList(rawText: string): {
   const seenCombos = new Set<string>(); // Track apt+last4 combos for duplicate detection
 
   const lines = rawText.split('\n');
-  const apartmentRegex = /^(C\d{2}[A-Z])/; // Matches C02G, C14K, etc.
+  // Flexible apartment regex: accepts C##X, N##X, or any letter + 2 digits + letter
+  const apartmentRegex = /^([A-Z]\d{2}[A-Z])/i; // Matches C02G, N14K, A05B, etc.
 
   lines.forEach((line, index) => {
     const lineNumber = index + 1;
@@ -44,7 +45,7 @@ export function parsePackageList(rawText: string): {
         errors.push({
           lineNumber,
           line: trimmedLine,
-          reason: 'Insufficient fields (expected at least 3)'
+          reason: `Insufficient fields - found ${fields.length}, expected at least 3 (apartment, entity, carrier/tracking)`
         });
         return;
       }
@@ -55,11 +56,11 @@ export function parsePackageList(rawText: string): {
         errors.push({
           lineNumber,
           line: trimmedLine,
-          reason: 'Could not find apartment code (expected format: C##L, e.g., C02G)'
+          reason: `No valid apartment code found in "${fields[0]}" (expected format: C##L, N##L, etc. - any letter + 2 digits + letter)`
         });
         return;
       }
-      const apartment = apartmentMatch[1];
+      const apartment = apartmentMatch[1].toUpperCase();
 
       // Field 2: Parse carrier/tracking field
       // Format: "CARRIER - #REFNUM - TRACKINGNUM RECIPIENT NAME"
@@ -70,7 +71,7 @@ export function parsePackageList(rawText: string): {
         errors.push({
           lineNumber,
           line: trimmedLine,
-          reason: 'Could not parse carrier/tracking field (expected format: CARRIER - #REF - TRACKING RECIPIENT)'
+          reason: `Invalid carrier/tracking format in "${carrierTrackingField}" - expected "CARRIER - #REF - TRACKING RECIPIENT" (found ${parts.length} parts, need 3)`
         });
         return;
       }
