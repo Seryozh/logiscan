@@ -19,9 +19,26 @@ export function parsePackageList(rawText: string): {
   const errors: ParsingError[] = [];
   const seenCombos = new Set<string>(); // Track apt+last4 combos for duplicate detection
 
-  const lines = rawText.split('\n');
   // Flexible apartment regex: accepts C##X, N##X, or any letter + 2 digits + letter
   const apartmentRegex = /^([A-Z]\d{2}[A-Z])/i; // Matches C02G, N14K, A05B, etc.
+
+  // First, check if the input has newlines or is one continuous line
+  // If it's one continuous line, we need to split by the pattern: timestamp followed by apartment code
+  // Timestamp pattern: MM/DD/YYYY HH:MM:SS AM/PM
+  let lines: string[];
+
+  if (rawText.includes('\n')) {
+    // Traditional line-by-line format
+    lines = rawText.split('\n');
+  } else {
+    // Single-line format - split on the boundary between timestamp and apartment code
+    // Pattern: "2/4/2026 7:04:53 PM N01D" -> split between "PM" and "N01D"
+    const timestampPattern = /(\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}:\d{2}\s+(?:AM|PM))\s+(?=[A-Z]\d{2}[A-Z]\s+Unit)/gi;
+
+    // Replace the pattern with timestamp + newline to create line breaks
+    const withNewlines = rawText.replace(timestampPattern, '$1\n');
+    lines = withNewlines.split('\n');
+  }
 
   lines.forEach((line, index) => {
     const lineNumber = index + 1;

@@ -245,4 +245,25 @@ C01C Unit Test LLC LASERSHIP - #333 - XYZ9876 Bob Johnson`;
     expect(result.packages[1].carrier).toBe('ONTRAC');
     expect(result.packages[2].carrier).toBe('LASERSHIP');
   });
+
+  it('should parse continuous line format (no newlines between packages)', () => {
+    const input = 'N01C Unit OFFICE 609 LLC USPS - #2167439815 - 420330199361289719660506103530 Gustavo Cuina 3801 2/4/2026 7:04:53 PM N01D Unit HARBOUR 519 LLC USPS - #2156535163 - NO TRACKING NUMBER -- Ada Rinaudo (flat) 3801 1/2/2026 2:26:18 PM N01E Unit Mavisis LLC UPS - #2167820464 - 1ZV514B7YT08003344 Maria Vicoria Silva JA (flat) 3801 2/5/2026 6:25:48 PM';
+
+    const result = parsePackageList(input);
+
+    expect(result.packages).toHaveLength(3);
+    expect(result.errors).toHaveLength(0);
+
+    expect(result.packages[0].apartment).toBe('N01C');
+    expect(result.packages[0].carrier).toBe('USPS');
+    expect(result.packages[0].trackingLast4).toBe('3530');
+
+    expect(result.packages[1].apartment).toBe('N01D');
+    expect(result.packages[1].carrier).toBe('USPS');
+    expect(result.packages[1].trackingLast4).toBe('NONE');
+
+    expect(result.packages[2].apartment).toBe('N01E');
+    expect(result.packages[2].carrier).toBe('UPS');
+    expect(result.packages[2].trackingLast4).toBe('3344');
+  });
 });
