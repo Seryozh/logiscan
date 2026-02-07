@@ -103,7 +103,8 @@ C02G Unit\tJOHN DOE\tAMAZON - #12345 - TBA987654321 JOHN DOE\t4501\t2/1/2026 10:
 
     expect(result.packages).toHaveLength(0);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].reason).toContain('Could not find apartment code');
+    expect(result.errors[0].reason).toContain('No valid apartment code');
+    expect(result.errors[0].lineNumber).toBe(1);
   });
 
   it('should handle malformed carrier/tracking field', () => {
@@ -113,7 +114,8 @@ C02G Unit\tJOHN DOE\tAMAZON - #12345 - TBA987654321 JOHN DOE\t4501\t2/1/2026 10:
 
     expect(result.packages).toHaveLength(0);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].reason).toContain('Could not parse carrier/tracking field');
+    expect(result.errors[0].reason).toContain('Invalid carrier/tracking format');
+    expect(result.errors[0].lineNumber).toBe(1);
   });
 
   it('should handle tracking numbers that are too short', () => {
