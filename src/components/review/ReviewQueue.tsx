@@ -44,7 +44,7 @@ export default function ReviewQueue() {
         </div>
         <div className="text-center py-8">
           <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-          <p className="text-gray-600 font-medium">All detections look good!</p>
+          <p className="text-gray-600 font-medium">No items flagged for review.</p>
           <p className="text-sm text-gray-500 mt-1">No items need manual review</p>
         </div>
       </div>

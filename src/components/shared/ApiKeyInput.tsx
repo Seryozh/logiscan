@@ -55,7 +55,7 @@ export default function ApiKeyInput() {
             Using Gemini 3 Flash with Agentic Vision
           </p>
           <p className="text-xs text-blue-600 mt-0.5">
-            ✨ Multi-step reasoning • Code execution • Accurate bounding boxes
+            Detect package labels in photos and review the matches before completing your audit.
           </p>
         </div>
 
@@ -120,7 +120,7 @@ export default function ApiKeyInput() {
 
         {/* Help */}
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-900">
-          <p className="font-semibold mb-2">Get Gemini API Key (Free Tier!):</p>
+          <p className="font-semibold mb-2">Get Gemini API Key:</p>
           <ol className="list-decimal list-inside space-y-1 text-xs">
             <li>Visit <strong>ai.google.dev</strong> (Google AI Studio)</li>
             <li>Sign in with your Google account</li>
@@ -132,10 +132,9 @@ export default function ApiKeyInput() {
               <strong>✨ What's Special:</strong> Agentic Vision uses multi-step reasoning
             </p>
             <p className="text-blue-700">
-              <strong>💰 Pricing:</strong> Generous free tier, then ~$0.002 per image
-            </p>
-            <p className="text-blue-700">
-              <strong>🎯 Accuracy:</strong> 5-10% better than standard vision APIs
+              <a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800">
+                Check current pricing with your selected AI provider.
+              </a>
             </p>
           </div>
           <a

@@ -157,9 +157,9 @@ npm run test:ui
 
 ## Privacy & Security
 
-- **No Server**: All processing happens in your browser
+Images are sent to the selected AI provider for text recognition.
+
 - **Local Storage Only**: API keys and session data stored locally
-- **No Data Upload**: Images and package data never leave your device (except AI API calls)
 - **API Key Protection**: Keys stored in browser localStorage, never exposed in code
 
 ## Browser Support
